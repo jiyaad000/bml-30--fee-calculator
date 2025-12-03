@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BML 30% Fee — Dark Calculator</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b0f14" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#0f1620;
+      --muted:#9aa6b2;
+      --accent:#00d1b2;
+      --danger:#ff6b6b;
+      --glass: rgba(255,255,255,0.03);
+      --radius:16px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      padding:24px;
+      background:linear-gradient(180deg,#051017 0%, #06121a 100%);
+      color:#e6eef3;
+      display:flex;
+      justify-content:center;
+      font-size:16px;
+    }
+    .wrap{width:100%;max-width:420px;}
+    header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:18px;
+      justify-content:space-between;
+    }
+    .logo{
+      width:56px;height:56px;border-radius:12px;
+      background:linear-gradient(135deg,#061a1a,#07333a);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 6px 18px rgba(0,0,0,0.6);
+    }
+    .logo h1{margin:0;font-size:20px;color:var(--accent)}
+    h2{margin:0;font-size:18px}
+    p.lead{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:var(--radius);
+      padding:18px;
+      box-shadow:0 8px 40px rgba(2,6,10,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    label{display:block;color:var(--muted);font-size:13px;margin-bottom:8px}
+    input[type=number]{
+      width:100%;
+      padding:14px 16px;
+      font-size:18px;
+      border-radius:12px;
+      background:var(--glass);
+      color:inherit;
+      border:1px solid rgba(255,255,255,0.04);
+    }
+    .row{display:flex;gap:12px;margin-top:12px;}
+    .box{flex:1;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.02)}
+    .label-small{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .value{font-size:20px;font-weight:600;margin-top:4px}
+    .actions{display:flex;gap:10px;margin-top:16px}
+    button{
+      flex:1;padding:12px;border-radius:12px;font-weight:600;
+      background:transparent;border:1px solid rgba(255,255,255,0.04);
+      color:var(--muted);cursor:pointer;
+    }
+    .currency-toggle{padding:8px 14px;font-size:13px;}
+    footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="logo"><h1>30%</h1></div>
+      <div>
+        <h2>BML Fee Calculator</h2>
+        <p class="lead">Price + shipping + 30%</p>
+      </div>
+    </div>
+    <button class="currency-toggle" onclick="toggleCurrency()">
+      <span id="currencyLabel">MVR</span>
+    </button>
+  </header>
+
+  <div class="card">
+    <label id="priceLabel">Product Price (MVR)</label>
+    <input id="price" type="number" step="0.01" placeholder="e.g. 125.15" oninput="calculate()">
+
+    <label id="shipLabel" style="margin-top:16px;">Shipping Fee (MVR)</label>
+    <input id="ship" type="number" step="0.01" placeholder="e.g. 20.00" oninput="calculate()">
+
+    <div id="rateBlock" style="display:none;">
+      <label style="margin-top:16px;">USD → MVR Rate</label>
+      <input id="rate" type="number" step="0.01" value="15.42" oninput="calculate()">
+    </div>
+
+    <div class="row" style="margin-top:18px">
+      <div class="box">
+        <div class="label-small">BML 30% Fee</div>
+        <div id="fee" class="value">0.00</div>
+      </div>
+      <div class="box">
+        <div class="label-small">Final Amount (MVR)</div>
+        <div id="final" class="value">0.00</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="resetAll()">Reset</button>
+    </div>
+
+    <footer>
+      <div class="small">Final = (Total × 1.30)</div>
+    </footer>
+  </div>
+</div>
+
+<script>
+let currency = "MVR";
+
+const price = document.getElementById("price");
+const ship  = document.getElementById("ship");
+const rateInput = document.getElementById("rate");
+const feeEl = document.getElementById("fee");
+const finalEl = document.getElementById("final");
+const rateBlock = document.getElementById("rateBlock");
+const currencyLabel = document.getElementById("currencyLabel");
+const priceLabel = document.getElementById("priceLabel");
+const shipLabel = document.getElementById("shipLabel");
+
+function format(n){
+  return Number(n).toLocaleString(undefined,{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function toggleCurrency(){
+  currency = currency === "MVR" ? "USD" : "MVR";
+  currencyLabel.textContent = currency;
+
+  if(currency === "USD"){
+    rateBlock.style.display = "block";
+    priceLabel.innerText = "Product Price (USD)";
+    shipLabel.innerText = "Shipping Fee (USD)";
+  } else {
+    rateBlock.style.display = "none";
+    priceLabel.innerText = "Product Price (MVR)";
+    shipLabel.innerText = "Shipping Fee (MVR)";
+  }
+  calculate();
+}
+
+function calculate(){
+  let p = parseFloat(price.value) || 0;
+  let s = parseFloat(ship.value)  || 0;
+  let rate = parseFloat(rateInput.value) || 0;
+
+  let subtotal = p + s;
+
+  if(currency === "USD"){
+    subtotal = subtotal * rate;
+  }
+
+  const fee = subtotal * 0.30;
+  const final = subtotal + fee;
+
+  feeEl.textContent = format(fee);
+  finalEl.textContent = format(final);
+}
+
+function resetAll(){
+  price.value="";
+  ship.value="";
+  calculate();
+  price.focus();
+}
+
+calculate();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+
+</body>
+</html>
